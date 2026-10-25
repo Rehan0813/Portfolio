@@ -1,0 +1,49 @@
+// Builds optimized portrait assets directly from the user's photo without cutout.
+import sharp from 'sharp';
+import { mkdirSync, copyFileSync } from 'node:fs';
+import path from 'node:path';
+
+const OUT = 'public/assets';
+mkdirSync(OUT, { recursive: true });
+
+const SOURCE_PATH = path.resolve('../WhatsApp Image 2026-10-12 at 6.01.10 PM.jpeg');
+
+// Copy the original source into public/assets/rehan.jpeg for direct access if needed
+copyFileSync(SOURCE_PATH, `${OUT}/rehan.jpeg`);
+
+const source = sharp(SOURCE_PATH);
+const { width, height } = await source.metadata();
+console.log(`Processing direct image: ${width}x${height}`);
+
+// Build webp versions at different responsive breakpoints directly from source
+for (const w of [1100, 720, 420]) {
+  await sharp(SOURCE_PATH)
+    .resize({ width: w })
+    .webp({ quality: 90 })
+    .toFile(`${OUT}/portrait-${w}.webp`);
+  console.log(`Generated ${OUT}/portrait-${w}.webp`);
+}
+
+// Social share image (1200x630) on dark backdrop
+const portrait = await sharp(SOURCE_PATH).resize({ height: 600 }).png().toBuffer();
+await sharp({ create: { width: 1200, height: 630, channels: 4, background: '#07070a' } })
+  .composite([
+    {
+      input: Buffer.from(`<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="g" cx="78%" cy="45%" r="45%"><stop offset="0" stop-color="#e5132b" stop-opacity="0.45"/><stop offset="1" stop-color="#e5132b" stop-opacity="0"/></radialGradient></defs>
+        <rect width="1200" height="630" fill="url(#g)"/>
+      </svg>`),
+    },
+    { input: portrait, gravity: 'southeast' },
+    {
+      input: Buffer.from(`<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <text x="72" y="300" font-family="Impact, 'Arial Narrow', sans-serif" font-size="128" fill="#f4f1ec" letter-spacing="4">REHAN</text>
+        <text x="78" y="352" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="26" fill="#ff3d5a" letter-spacing="16">THE SERIES</text>
+        <text x="78" y="420" font-family="Helvetica, Arial, sans-serif" font-weight="600" font-size="18" fill="#a7a6ad" letter-spacing="5">SOFTWARE ENGINEER • BACKEND • FULL-STACK</text>
+      </svg>`),
+    },
+  ])
+  .jpeg({ quality: 85 })
+  .toFile(`${OUT}/og-image.jpg`);
+
+console.log('All image assets successfully built directly from source photo!');
