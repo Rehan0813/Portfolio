@@ -55,10 +55,19 @@ function Series() {
   const [toast, setToast] = useState<string | null>(null);
   const { scrollTo, lock, unlock } = useSmoothScroll();
 
-  const order = viewerProfiles.find((p) => p.id === profileId)!.order;
+  const order = viewerProfiles.find((p) => p.id === profileId)?.order ?? viewerProfiles[0].order;
 
   useEffect(() => {
-    if (stage === 'home') return;
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (stage === 'home') {
+      unlock();
+      return;
+    }
     lock();
     return unlock;
   }, [stage, lock, unlock]);
